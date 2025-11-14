@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>B站BVID到AVID转换器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+        }
+        
+        body {
+            background-color: #f4f5f7;
+            color: #18191c;
+            line-height: 1.6;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .container {
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            padding: 30px;
+            margin-top: 20px;
+        }
+        
+        h1 {
+            color: #00a1d6;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 24px;
+        }
+        
+        .description {
+            color: #61666d;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .input-group {
+            margin-bottom: 25px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #18191c;
+        }
+        
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e7e7e7;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #00a1d6;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(0, 161, 214, 0.1);
+        }
+        
+        button {
+            background-color: #00a1d6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background-color: #0090c1;
+        }
+        
+        button:active {
+            transform: translateY(1px);
+        }
+        
+        button.secondary {
+            background-color: #6c757d;
+        }
+        
+        button.secondary:hover {
+            background-color: #5a6268;
+        }
+        
+        .result-area {
+            margin-top: 30px;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            display: none;
+        }
+        
+        .result-area h3 {
+            margin-bottom: 15px;
+            color: #00a1d6;
+            font-size: 18px;
+        }
+        
+        .result-item {
+            margin-bottom: 15px;
+        }
+        
+        .result-label {
+            font-weight: 600;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .result-value {
+            padding: 10px;
+            background-color: white;
+            border-radius: 5px;
+            word-break: break-all;
+            font-family: monospace;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .button-group button {
+            flex: 1;
+        }
+        
+        .message {
+            padding: 10px;
+            border-radius: 5px;
+            margin-top: 15px;
+            text-align: center;
+            display: none;
+        }
+        
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        @media (min-width: 768px) {
+            body {
+                padding: 40px 20px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+            
+            .button-group {
+                flex-direction: row;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+            
+            h1 {
+                font-size: 22px;
+            }
+            
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>B站BVID到AVID转换器</h1>
+        <p class="description">输入BVID，将其转换为AVID，并支持一键复制</p>
+        
+        <div class="input-group">
+            <label for="bvid-input">BVID：</label>
+            <input type="text" id="bvid-input" placeholder="例如：BV1xx4y1o7Eo" maxlength="12">
+        </div>
+        
+        <button id="convert-btn">转换为AVID</button>
+        
+        <div class="result-area" id="result-area">
+            <h3>转换结果</h3>
+            
+            <div class="result-item">
+                <span class="result-label">AVID：</span>
+                <div class="result-value" id="avid-result"></div>
+            </div>
+            
+            <div class="result-item">
+                <span class="result-label">完整链接：</span>
+                <div class="result-value" id="link-result"></div>
+            </div>
+            
+            <div class="button-group">
+                <button id="copy-avid-btn" class="secondary">复制AVID</button>
+                <button id="copy-link-btn" class="secondary">复制完整链接</button>
+            </div>
+        </div>
+        
+        <div class="message" id="message"></div>
+    </div>
+
+    <script>
+        // 码表
+        const BASE58_TABLE = "FcwAPNKTMug3GV5Lj7EJnHpWsx4tb8haYeviqBz6rkCy12mUSDQX9RdoZf";
+        const XOR_CODE = 23442827791579;
+        const MASK = (1n << 51n) - 1n;
+        
+        // 获取DOM元素
+        const bvidInput = document.getElementById('bvid-input');
+        const convertBtn = document.getElementById('convert-btn');
+        const resultArea = document.getElementById('result-area');
+        const avidResult = document.getElementById('avid-result');
+        const linkResult = document.getElementById('link-result');
+        const copyAvidBtn = document.getElementById('copy-avid-btn');
+        const copyLinkBtn = document.getElementById('copy-link-btn');
+        const message = document.getElementById('message');
+        
+        // 转换函数
+        function bvidToAvid(bvid) {
+            // 交换索引3和9的字符
+            let arr = bvid.split('');
+            [arr[3], arr[9]] = [arr[9], arr[3]];
+            
+            // 交换索引4和7的字符
+            [arr[4], arr[7]] = [arr[7], arr[4]];
+            
+            // 删除前3个字符（BV1）
+            const encodedStr = arr.slice(3).join('');
+            
+            // Base58解码
+            let tmp = 0n;
+            for (let i = 0; i < encodedStr.length; i++) {
+                const idx = BASE58_TABLE.indexOf(encodedStr[i]);
+                if (idx === -1) {
+                    throw new Error('无效的BVID字符');
+                }
+                tmp = tmp * 58n + BigInt(idx);
+            }
+            
+            // 与掩码进行与操作，然后与XOR_CODE异或
+            const avid = Number((tmp & MASK) ^ BigInt(XOR_CODE));
+            
+            return avid;
+        }
+        
+        // 显示消息
+        function showMessage(text, isSuccess) {
+            message.textContent = text;
+            message.className = 'message ' + (isSuccess ? 'success' : 'error');
+            message.style.display = 'block';
+            
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 3000);
+        }
+        
+        // 复制到剪贴板函数
+        async function copyToClipboard(text) {
+            try {
+                // 尝试使用现代Clipboard API
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } else {
+                    // 回退方案：使用execCommand
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    textArea.style.position = 'fixed';
+                    textArea.style.top = '0';
+                    textArea.style.left = '0';
+                    textArea.style.opacity = '0';
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    textArea.setSelectionRange(0, 99999); // 兼容移动设备
+                    
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    return successful;
+                }
+            } catch (err) {
+                console.error('复制失败:', err);
+                return false;
+            }
+        }
+        
+        // 转换按钮点击事件
+        convertBtn.addEventListener('click', () => {
+            const bvid = bvidInput.value.trim();
+            
+            if (!bvid) {
+                showMessage('请输入BVID', false);
+                return;
+            }
+            
+            // 验证BVID格式（以BV1开头，长度为12）
+            if (!bvid.startsWith('BV1') || bvid.length !== 12) {
+                showMessage('BVID格式不正确，应以BV1开头且长度为12个字符', false);
+                return;
+            }
+            
+            try {
+                const avid = bvidToAvid(bvid);
+                avidResult.textContent = avid;
+                linkResult.textContent = `https://www.bilibili.com/appeal?avid=${avid}`;
+                resultArea.style.display = 'block';
+                showMessage('转换成功！', true);
+            } catch (error) {
+                showMessage('转换失败：' + error.message, false);
+            }
+        });
+        
+        // 复制AVID按钮点击事件
+        copyAvidBtn.addEventListener('click', async () => {
+            const avid = avidResult.textContent;
+            if (!avid) {
+                showMessage('没有可复制的内容', false);
+                return;
+            }
+            
+            const successful = await copyToClipboard(avid);
+            if (successful) {
+                showMessage('AVID已复制到剪贴板！', true);
+            } else {
+                showMessage('复制失败，请手动选择文本复制', false);
+            }
+        });
+        
+        // 复制完整链接按钮点击事件
+        copyLinkBtn.addEventListener('click', async () => {
+            const link = linkResult.textContent;
+            if (!link) {
+                showMessage('没有可复制的内容', false);
+                return;
+            }
+            
+            const successful = await copyToClipboard(link);
+            if (successful) {
+                showMessage('完整链接已复制到剪贴板！', true);
+            } else {
+                showMessage('复制失败，请手动选择文本复制', false);
+            }
+        });
+        
+        // 按Enter键也可以触发转换
+        bvidInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                convertBtn.click();
+            }
+        });
+    </script>
+</body>
+</html>
